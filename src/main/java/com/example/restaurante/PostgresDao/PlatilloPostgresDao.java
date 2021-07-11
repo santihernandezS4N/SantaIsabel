@@ -8,22 +8,41 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.sql.*;
+
 
 @Repository
 public class PlatilloPostgresDao implements PlatilloDAO {
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private final String url = "jdbc:postgresql://localhost/facturacion-dev";
+    private final String user = "postgres";
+    private final String password = System.getenv("DB-PASS");
 
-    @Override
+    public Connection connect() throws SQLException {
+        return DriverManager.getConnection(url, user, password);
+    }
     public void crearPlatillo(Platillo platillo) {
-        String sql = "INSERT INTO platillo (nombre, descripcion, precio, guarniciones) VALUES ("
-                + "'Platillo1', 'descripcion1', 12345, '1')";
+        String SQL = "INSERT INTO platillo(nombre,descripcion,precio,guarniciones) "
+                + "VALUES(?,?,?,?)";
 
-        int rows = jdbcTemplate.update(sql);
-        if (rows > 0) {
-            System.out.println("A new row has been inserted.");
+        System.out.println(password);
+
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(SQL,
+                     Statement.RETURN_GENERATED_KEYS)) {
+
+            pstmt.setString(1, platillo.getNombre());
+            pstmt.setString(2, platillo.getDescripcion());
+            pstmt.setInt   (3, platillo.getPrecio());
+            pstmt.setString(4, platillo.getPosiblesGuarniciones());
+
+            int affectedRows = pstmt.executeUpdate();
+            // check the affected rows
+            if (affectedRows > 0) {
+                System.out.println("Row inserted");
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
         }
     }
-
 }
